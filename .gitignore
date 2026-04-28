@@ -1,0 +1,18 @@
+# Tooling local de Claude / preview
+.claude/
+
+# Capturas usadas durante el desarrollo (no necesarias en produccion)
+screenshots/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
