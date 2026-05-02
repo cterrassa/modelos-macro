@@ -1811,8 +1811,8 @@ function renderCycles(base, cur) {
   }
   const charts = [
     lineChart({
-      title: "1. Demanda agregada y oferta agregada",
-      subtitle: "Choques de DA y OA mueven el equilibrio de corto plazo (Y, P).",
+      title: "1. DA - OACP - OALP (DA - SRAS - LRAS)",
+      subtitle: "DA: pendiente negativa. OACP/SRAS: pendiente positiva (precios pegajosos). OALP/LRAS: vertical en Y* (largo plazo).",
       xLabel: "Producto Y",
       yLabel: "Nivel de precios P",
       xDomain,
@@ -1823,13 +1823,13 @@ function renderCycles(base, cur) {
       ],
       curves: [
         { label: "DA base", color: COLORS.base, dash: "7 6", points: samplePoints((Y) => ad(base, Y), xDomain) },
-        { label: "OA base", color: COLORS.base, dash: "2 5", points: samplePoints((Y) => sras(base, Y), xDomain) },
+        { label: "OACP base", color: COLORS.base, dash: "2 5", points: samplePoints((Y) => sras(base, Y), xDomain) },
         { label: "DA nueva", color: COLORS.blue, points: samplePoints((Y) => ad(cur, Y), xDomain) },
-        { label: "OA nueva", color: COLORS.coral, points: samplePoints((Y) => sras(cur, Y), xDomain) },
+        { label: "OACP nueva", color: COLORS.coral, points: samplePoints((Y) => sras(cur, Y), xDomain) },
       ],
-      vLines: [{ x: cur.Ypot, label: "Y* potencial", color: COLORS.green }],
+      vLines: [{ x: cur.Ypot, label: `OALP (Y* = ${fmt(cur.Ypot, 1)})`, color: COLORS.green, width: 2.5 }],
       crossGuides: [{ orientation: "v", x: cur.Y, color: COLORS.teal, label: `Y = ${fmt(cur.Y, 1)}` }],
-      markers: [{ x: cur.Y, y: cur.P, label: `Equilibrio (${fmt(cur.Y, 1)}, ${fmt(cur.P, 1)})`, color: COLORS.teal, guides: true, pulse: true }],
+      markers: [{ x: cur.Y, y: cur.P, label: `Equilibrio CP (${fmt(cur.Y, 1)}, ${fmt(cur.P, 1)})`, color: COLORS.teal, guides: true, pulse: true }],
       arrows: moveArrow({ x: base.Y, y: base.P }, { x: cur.Y, y: cur.P }, "ΔDA / ΔOA", COLORS.teal),
     }),
     lineChart({
@@ -2766,6 +2766,508 @@ function renderMF(base, cur) {
   };
 }
 
+// ===========================================================================
+// Modelos adicionales basados en presentaciones 25 (¿Por qué desempleo a LP?)
+// y 39 (Consideraciones finales MF: trinidad imposible y enfoque de Poole).
+// ===========================================================================
+
+// ---- 1. Sector formal e informal con salario mínimo (caja de Edgeworth) ----
+function computeFormalInformal(p) {
+  // Eje horizontal de 0 a Ltotal: oferta de trabajo total se reparte entre sector
+  // informal (medido desde la izquierda) y formal (desde la derecha).
+  // DD informal: w = aSI - bSI * L_SI  (decrece con L_SI medido desde la izquierda)
+  // DD formal:   w = aSF - bSF * L_SF  (decrece con L_SF medido desde la derecha)
+  // Como L_SI + L_SF = Ltotal, en el eje "L medido desde la izquierda" la DD formal es:
+  //   w = aSF - bSF * (Ltotal - L)
+  // que crece con L (en el plano de la caja). Es la cyan (DD_SF).
+  const Ltot = p.Ltotal;
+  const ddSI = (L) => p.aSI - p.bSI * L; // DD informal (downward from left)
+  const ddSF = (L) => p.aSF - p.bSF * (Ltot - L); // DD formal (upward in the box plane)
+  // Equilibrio sin salario mínimo: ddSI(L*) = ddSF(L*)
+  // p.aSI - p.bSI*L = p.aSF - p.bSF*(Ltot - L) = p.aSF - p.bSF*Ltot + p.bSF*L
+  // (p.aSI - p.aSF + p.bSF*Ltot) = L*(p.bSI + p.bSF)
+  const Leq = (p.aSI - p.aSF + p.bSF * Ltot) / (p.bSI + p.bSF);
+  const wEq = ddSI(Leq);
+  // Con salario mínimo en el SECTOR FORMAL solamente (w_min > w*):
+  // L_SF se determina por DD formal: w_min = p.aSF - p.bSF * L_SF  →  L_SF = (p.aSF - w_min) / p.bSF
+  // Trabajadores desplazados van al sector informal (no hay desempleo abierto en este modelo, hay re-asignación).
+  // L_SI = Ltot - L_SF; w_SI se ajusta a la DD informal en ese L_SI.
+  const wMin = Math.max(wEq, p.wmin);
+  const Lsf = Math.max(0, (p.aSF - wMin) / p.bSF);
+  const Lsi = Math.max(0, Ltot - Lsf);
+  const wSI = ddSI(Lsi);
+  // Excedente del trabajador en cada sector (área triangular bajo DD por encima del salario)
+  const excedSF = 0.5 * Lsf * Math.max(0, p.aSF - wMin);
+  const excedSI = 0.5 * Lsi * Math.max(0, ddSI(0) - wSI); // crude triangular approx
+  // Pérdida de bienestar agregada vs equilibrio sin sal mín:
+  // En equilibrio: sum de excedentes = 0.5 * (aSI - wEq) * Leq + 0.5 * (aSF - wEq) * (Ltot - Leq)
+  const baseExcedSI0 = 0.5 * Leq * Math.max(0, ddSI(0) - wEq);
+  const baseExcedSF0 = 0.5 * (Ltot - Leq) * Math.max(0, p.aSF - wEq);
+  const enbBase = baseExcedSI0 + baseExcedSF0;
+  const enbCur = excedSI + excedSF;
+  return { ...p, Leq, wEq, wMin, Lsf, Lsi, wSI, excedSF, excedSI, enbBase, enbCur, dwl: enbBase - enbCur };
+}
+
+function renderFormalInformal(base, cur) {
+  const Ltot = cur.Ltotal;
+  const xDomain = [0, Ltot];
+  const yDomain = [0, Math.max(cur.aSI, cur.aSF) * 1.05];
+  const ddSIfn = (p) => (L) => p.aSI - p.bSI * L;
+  const ddSFfn = (p) => (L) => p.aSF - p.bSF * (Ltot - L);
+  const charts = [
+    lineChart({
+      title: "1. Caja de Edgeworth: sector informal (izq.) y sector formal (der.)",
+      subtitle: "Eje X = trabajo asignado al sector informal (medido desde la izquierda). DD_SI baja; DD_SF sube en este eje porque se mide desde la derecha.",
+      xLabel: "Trabajo: 0 → informal · derecha → formal (Ltotal)",
+      yLabel: "Salario real w/P",
+      xDomain,
+      yDomain,
+      curves: [
+        { label: "DD_SI base", color: COLORS.base, dash: "7 6", points: samplePoints(ddSIfn(base), xDomain) },
+        { label: "DD_SF base", color: COLORS.base, dash: "2 5", points: samplePoints(ddSFfn(base), xDomain) },
+        { label: "DD informal", color: COLORS.amber, points: samplePoints(ddSIfn(cur), xDomain) },
+        { label: "DD formal", color: COLORS.teal, points: samplePoints(ddSFfn(cur), xDomain) },
+      ],
+      hLines: [
+        { y: cur.wEq, label: `w* = ${fmt(cur.wEq, 2)}`, color: COLORS.green, dash: "5 5" },
+        ...(cur.wMin > cur.wEq + 1e-6 ? [{ y: cur.wMin, label: `w_min formal = ${fmt(cur.wMin, 2)}`, color: COLORS.coral }] : []),
+      ],
+      vLines: [
+        { x: cur.Leq, label: `L* = ${fmt(cur.Leq, 1)}`, color: COLORS.base, dash: "5 5" },
+        ...(cur.wMin > cur.wEq + 1e-6 ? [{ x: cur.Lsi, label: `L_SI = ${fmt(cur.Lsi, 1)}`, color: COLORS.amber }] : []),
+      ],
+      markers: [
+        { x: cur.Leq, y: cur.wEq, label: "Equilibrio sin w_min", color: COLORS.green, r: 6 },
+        ...(cur.wMin > cur.wEq + 1e-6
+          ? [
+              { x: cur.Lsi, y: cur.wSI, label: `Informal: w=${fmt(cur.wSI, 2)}`, color: COLORS.amber, guides: true, pulse: true },
+              { x: cur.Lsi, y: cur.wMin, label: `Formal: w_min`, color: COLORS.coral, dy: -22 },
+            ]
+          : []),
+      ],
+      arrows: cur.wMin > cur.wEq + 1e-6 && Math.abs(cur.Leq - cur.Lsi) > 0.5
+        ? moveArrow({ x: cur.Leq, y: cur.wEq }, { x: cur.Lsi, y: cur.wSI }, "Trabajadores se mueven a SI", COLORS.amber)
+        : [],
+      wide: true,
+    }),
+    barChart({
+      title: "2. Empleo y salario por sector",
+      subtitle: "Sin salario mínimo: ambos sectores ganan w*. Con salario mínimo en formal: w formal sube, formal cae, informal absorbe el excedente.",
+      yLabel: "Trabajadores / salario real",
+      bars: [
+        { label: "L formal", base: Ltot - base.Leq, value: cur.Lsf, color: COLORS.teal },
+        { label: "L informal", base: base.Leq, value: cur.Lsi, color: COLORS.amber },
+        { label: "w formal", base: base.wEq, value: cur.wMin, color: COLORS.coral, digits: 2 },
+        { label: "w informal", base: base.wEq, value: cur.wSI, color: COLORS.green, digits: 2 },
+      ],
+    }),
+  ].join("");
+  const equations = [
+    {
+      label: "Equilibrio sin salario mínimo",
+      tag: "DD_SI = DD_SF",
+      formula: "a_SI − b_SI · L = a_SF − b_SF · (L_total − L)",
+      baseHTML: `L* = (${termHTML(base.aSI, base.aSI, 1)} − ${termHTML(base.aSF, base.aSF, 1)} + ${termHTML(base.bSF, base.bSF, 2)}·${termHTML(base.Ltotal, base.Ltotal, 0)}) / (${termHTML(base.bSI, base.bSI, 2)} + ${termHTML(base.bSF, base.bSF, 2)}) = <b>${fmt(base.Leq, 2)}</b>;  w* = <b>${fmt(base.wEq, 2)}</b>`,
+      curHTML: `L* = (${termHTML(base.aSI, cur.aSI, 1)} − ${termHTML(base.aSF, cur.aSF, 1)} + ${termHTML(base.bSF, cur.bSF, 2)}·${termHTML(base.Ltotal, cur.Ltotal, 0)}) / (${termHTML(base.bSI, cur.bSI, 2)} + ${termHTML(base.bSF, cur.bSF, 2)}) = <b>${fmt(cur.Leq, 2)}</b>;  w* = <b>${fmt(cur.wEq, 2)}</b>`,
+    },
+    {
+      label: "Empleo formal con salario mínimo",
+      tag: "L_SF",
+      formula: "L_SF = (a_SF − w_min) / b_SF",
+      baseHTML: `L_SF = (${termHTML(base.aSF, base.aSF, 1)} − ${termHTML(base.wmin, base.wmin, 2)}) / ${termHTML(base.bSF, base.bSF, 2)} = <b>${fmt(Math.max(0, (base.aSF - base.wmin) / base.bSF), 2)}</b>`,
+      curHTML: `L_SF = (${termHTML(base.aSF, cur.aSF, 1)} − ${termHTML(base.wmin, cur.wmin, 2)}) / ${termHTML(base.bSF, cur.bSF, 2)} = <b>${fmt(cur.Lsf, 2)}</b>`,
+      note: "Si w_min ≤ w* el salario mínimo no es vinculante y nada cambia.",
+    },
+    {
+      label: "Empleo y salario informal",
+      tag: "L_SI = Ltot − L_SF",
+      formula: "L_SI = L_total − L_SF;  w_SI = a_SI − b_SI · L_SI",
+      baseHTML: `L_SI = ${fmt(base.Leq, 2)};  w_SI = <b>${fmt(base.wEq, 2)}</b>`,
+      curHTML: `L_SI = ${fmt(cur.Lsi, 2)};  w_SI = <b>${fmt(cur.wSI, 2)}</b>`,
+      note: "Los trabajadores desplazados del sector formal se reasignan al informal y empujan w_SI hacia abajo.",
+    },
+  ];
+  return {
+    formulas: ["DD_SI: w = a_SI − b_SI L", "DD_SF: w = a_SF − b_SF (L_tot − L)", "L_SI + L_SF = L_total"],
+    links: [
+      { from: "Salario mínimo", variable: "L_SF", base: Ltot - base.Leq, value: cur.Lsf, color: COLORS.teal, to: "Empleo formal", note: "Empleo formal cae si w_min > w*." },
+      { from: "Reasignación", variable: "L_SI", base: base.Leq, value: cur.Lsi, color: COLORS.amber, to: "Sector informal", note: "Trabajadores desplazados engrosan el sector informal y reducen el salario informal." },
+    ],
+    charts,
+    equations,
+    steps: [
+      `Sin salario mínimo, ambos sectores se equilibran a w* = ${fmt(cur.wEq, 2)} con L_SI = L_SF en L = ${fmt(cur.Leq, 2)}.`,
+      cur.wMin > cur.wEq + 1e-6
+        ? `Al imponer w_min = ${fmt(cur.wMin, 2)} en el sector formal, el empleo formal cae a L_SF = ${fmt(cur.Lsf, 2)} (la firma desliza por DD_SF).`
+        : `El salario mínimo (${fmt(cur.wmin, 2)}) está por debajo o igual a w*, así que no es vinculante y nada cambia.`,
+      cur.wMin > cur.wEq + 1e-6
+        ? `Los trabajadores desplazados (${fmt(cur.Lsf - (Ltot - cur.Leq), 2)} en valor absoluto) cruzan al sector informal, ahí L_SI sube y w informal cae a ${fmt(cur.wSI, 2)}.`
+        : `Sin reasignación: sector formal y sector informal mantienen w*.`,
+      `El excedente nacional bruto cae de ${fmt(cur.enbBase, 1)} a ${fmt(cur.enbCur, 1)} (pérdida de eficiencia ${fmt(cur.dwl, 2)}).`,
+    ],
+    rows: [
+      row("Trabajadores en sector formal", Ltot - base.Leq, cur.Lsf, 1),
+      row("Trabajadores en sector informal", base.Leq, cur.Lsi, 1),
+      row("Salario formal w_F", base.wEq, cur.wMin, 2),
+      row("Salario informal w_I", base.wEq, cur.wSI, 2),
+      row("Salario mínimo legislado", base.wmin, cur.wmin, 2),
+      row("Excedente nacional", base.enbBase, cur.enbCur, 1),
+      row("Pérdida de eficiencia (DWL)", 0, cur.dwl, 2),
+    ],
+    shocks: {
+      title: "Estática comparativa · sector formal e informal",
+      hint: "↑ aumenta · ↓ disminuye · — sin cambio",
+      columns: [
+        { key: "LSF", label: "L formal" },
+        { key: "LSI", label: "L informal" },
+        { key: "wSF", label: "w formal" },
+        { key: "wSI", label: "w informal" },
+        { key: "ENB", label: "ENB" },
+      ],
+      rows: [
+        { shock: "↑ w_min  (más alto que w*)", effects: { LSF: "down", LSI: "up", wSF: "up", wSI: "down", ENB: "down" }, note: "asignación más alejada del óptimo competitivo" },
+        { shock: "↑ a_SF  (productividad formal)", effects: { LSF: "up", LSI: "down", wSF: "up", wSI: "up", ENB: "up" } },
+        { shock: "↑ a_SI  (productividad informal)", effects: { LSF: "down", LSI: "up", wSF: "flat", wSI: "up", ENB: "up" } },
+        { shock: "↑ L_total  (más fuerza laboral)", effects: { LSF: "up", LSI: "up", wSF: "down", wSI: "down", ENB: "up" } },
+      ],
+    },
+  };
+}
+
+// ---- 2. Programa de capacitación: DD se desplaza a la derecha y OO a la izquierda ----
+function computeTraining(p) {
+  // Mercado laboral simple: DD0: w = a - b*L; OO0: w = c + d*L (c puede ser 0)
+  // Capacitación (intensidad t∈[0,1]):
+  //   - DD se desplaza a la derecha: a' = a + αD * t  (más productivos ⇒ mayor PMgL)
+  //   - OO se desplaza a la izquierda (sube w para cada L): c' = c + αO * t
+  const a = p.a + p.alphaD * p.training;
+  const c = p.c0 + p.alphaO * p.training;
+  // Equilibrio: a - b*L = c + d*L  → L* = (a - c) / (b + d); w* = a - b*L*
+  const Lstar = Math.max(0, (a - c) / (p.b + p.d));
+  const wStar = a - p.b * Lstar;
+  return { ...p, aEff: a, cEff: c, Lstar, wStar };
+}
+
+function renderTraining(base, cur) {
+  const xDomain = [0, Math.max(50, cur.Lstar) * 1.4];
+  const yDomain = [0, Math.max(cur.aEff, base.aEff) * 1.1];
+  const dd = (p) => (L) => p.aEff - p.b * L;
+  const oo = (p) => (L) => p.cEff + p.d * L;
+  const charts = [
+    lineChart({
+      title: "Mercado laboral: efecto de capacitación",
+      subtitle: "Capacitación ↑ corre DD a la derecha (más productivos) y OO a la izquierda (mejor outside option). Empleo ambiguo, salario ↑.",
+      xLabel: "Trabajadores L",
+      yLabel: "Salario real w/P",
+      xDomain,
+      yDomain,
+      shifts: [
+        { basePoints: samplePoints(dd(base), xDomain), newPoints: samplePoints(dd(cur), xDomain), color: COLORS.coral, opacity: 0.14 },
+        { basePoints: samplePoints(oo(base), xDomain), newPoints: samplePoints(oo(cur), xDomain), color: COLORS.green, opacity: 0.14 },
+      ],
+      curves: [
+        { label: "DD base", color: COLORS.base, dash: "7 6", points: samplePoints(dd(base), xDomain) },
+        { label: "OO base", color: COLORS.base, dash: "2 5", points: samplePoints(oo(base), xDomain) },
+        { label: "DD nueva", color: COLORS.coral, points: samplePoints(dd(cur), xDomain) },
+        { label: "OO nueva", color: COLORS.green, points: samplePoints(oo(cur), xDomain) },
+      ],
+      crossGuides: [
+        { orientation: "v", x: cur.Lstar, color: COLORS.teal, label: `L* = ${fmt(cur.Lstar, 1)}` },
+        { orientation: "h", y: cur.wStar, color: COLORS.amber, label: `w* = ${fmt(cur.wStar, 2)}` },
+      ],
+      markers: [
+        { x: base.Lstar, y: base.wStar, label: "Antes", color: COLORS.base, guides: true },
+        { x: cur.Lstar, y: cur.wStar, label: `Después: w* = ${fmt(cur.wStar, 2)}`, color: COLORS.teal, guides: true, pulse: true },
+      ],
+      arrows: moveArrow({ x: base.Lstar, y: base.wStar }, { x: cur.Lstar, y: cur.wStar }, "Δw vía capacitación", COLORS.teal),
+      wide: true,
+    }),
+    barChart({
+      title: "Salario y empleo: efecto neto",
+      subtitle: "El salario sube siempre. El empleo puede subir, bajar o mantenerse según la magnitud relativa de los desplazamientos.",
+      yLabel: "Nivel",
+      bars: [
+        { label: "L*", base: base.Lstar, value: cur.Lstar, color: COLORS.teal, digits: 1 },
+        { label: "w*", base: base.wStar, value: cur.wStar, color: COLORS.coral, digits: 2 },
+        { label: "Ingreso w·L", base: base.wStar * base.Lstar, value: cur.wStar * cur.Lstar, color: COLORS.green, digits: 1 },
+      ],
+    }),
+  ].join("");
+  const equations = [
+    {
+      label: "Demanda de trabajo",
+      tag: "DD",
+      formula: "w = (a + α_D · t) − b · L",
+      baseHTML: `w = (${termHTML(base.a, base.a, 1)} + ${termHTML(base.alphaD, base.alphaD, 1)}·${termHTML(base.training, base.training, 2)}) − ${termHTML(base.b, base.b, 2)}·L`,
+      curHTML: `w = (${termHTML(base.a, cur.a, 1)} + ${termHTML(base.alphaD, cur.alphaD, 1)}·${termHTML(base.training, cur.training, 2)}) − ${termHTML(base.b, cur.b, 2)}·L`,
+    },
+    {
+      label: "Oferta de trabajo",
+      tag: "OO",
+      formula: "w = (c₀ + α_O · t) + d · L",
+      baseHTML: `w = (${termHTML(base.c0, base.c0, 1)} + ${termHTML(base.alphaO, base.alphaO, 1)}·${termHTML(base.training, base.training, 2)}) + ${termHTML(base.d, base.d, 2)}·L`,
+      curHTML: `w = (${termHTML(base.c0, cur.c0, 1)} + ${termHTML(base.alphaO, cur.alphaO, 1)}·${termHTML(base.training, cur.training, 2)}) + ${termHTML(base.d, cur.d, 2)}·L`,
+    },
+    {
+      label: "Equilibrio del mercado laboral",
+      tag: "DD = OO",
+      formula: "L* = (a_eff − c_eff) / (b + d);  w* = a_eff − b · L*",
+      baseHTML: `L* = (${fmt(base.aEff, 2)} − ${fmt(base.cEff, 2)}) / (${termHTML(base.b, base.b, 2)} + ${termHTML(base.d, base.d, 2)}) = <b>${fmt(base.Lstar, 2)}</b>;  w* = <b>${fmt(base.wStar, 2)}</b>`,
+      curHTML: `L* = (${fmt(cur.aEff, 2)} − ${fmt(cur.cEff, 2)}) / (${termHTML(base.b, cur.b, 2)} + ${termHTML(base.d, cur.d, 2)}) = <b>${fmt(cur.Lstar, 2)}</b>;  w* = <b>${fmt(cur.wStar, 2)}</b>`,
+    },
+  ];
+  return {
+    formulas: ["DD: w = a + α_D·t − b L", "OO: w = c₀ + α_O·t + d L", "L* = (a_eff − c_eff) / (b + d)"],
+    links: [
+      { from: "Capacitación t ↑", variable: "DD ↑ (derecha)", base: base.aEff, value: cur.aEff, color: COLORS.coral, to: "Más PMgL", note: "Trabajadores más productivos: las firmas demandan más a cada w." },
+      { from: "Capacitación t ↑", variable: "OO ↑ (izquierda)", base: base.cEff, value: cur.cEff, color: COLORS.green, to: "Mejor reservation wage", note: "Mayor salario alternativo en otros usos del tiempo." },
+    ],
+    charts,
+    equations,
+    steps: [
+      `La capacitación con intensidad t = ${fmt(cur.training, 2)} aumenta la productividad efectiva: a pasa de ${fmt(base.aEff, 2)} a ${fmt(cur.aEff, 2)}.`,
+      `Por el efecto en oferta, el outside option sube: c efectivo pasa de ${fmt(base.cEff, 2)} a ${fmt(cur.cEff, 2)}.`,
+      `El salario de equilibrio sube de ${fmt(base.wStar, 2)} a ${fmt(cur.wStar, 2)}.`,
+      `El empleo se mueve de ${fmt(base.Lstar, 1)} a ${fmt(cur.Lstar, 1)} — el efecto neto puede ser positivo, negativo o nulo según la magnitud relativa de los choques.`,
+    ],
+    rows: [
+      row("Demanda intercepto a_eff", base.aEff, cur.aEff, 2),
+      row("Oferta intercepto c_eff", base.cEff, cur.cEff, 2),
+      row("Empleo de equilibrio L*", base.Lstar, cur.Lstar, 1),
+      row("Salario real w*", base.wStar, cur.wStar, 2),
+      row("Ingreso laboral w·L", base.wStar * base.Lstar, cur.wStar * cur.Lstar, 1),
+    ],
+    shocks: {
+      title: "Estática comparativa · capacitación",
+      columns: [
+        { key: "L", label: "L*" },
+        { key: "w", label: "w*" },
+        { key: "wL", label: "w·L" },
+      ],
+      rows: [
+        { shock: "↑ t  (intensidad de capacitación)", effects: { L: "mixed", w: "up", wL: "up" }, note: "efecto sobre L ambiguo, salario sube" },
+        { shock: "↑ α_D  (mayor ganancia de productividad)", effects: { L: "up", w: "up", wL: "up" } },
+        { shock: "↑ α_O  (mayor outside option)", effects: { L: "down", w: "up", wL: "mixed" } },
+      ],
+    },
+  };
+}
+
+// ---- 3. Trinidad imposible (trilemma) ----
+function computeTrilema(p) {
+  // p.choice es uno de "monetaria" (US/Colombia: capital libre + monetaria indep + flexible),
+  // "fija" (Hong Kong: capital libre + fija + monetaria endógena),
+  // "controles" (China: monetaria indep + fija + controles de capital)
+  // Salidas: para cada vértice si está activo y costos asociados.
+  const C = {
+    monetaria: { capital: true, monetariaIndep: true, fixedXR: false, ejemplos: ["Estados Unidos", "Colombia", "Reino Unido"], costo: "Volatilidad del tipo de cambio" },
+    fija: { capital: true, monetariaIndep: false, fixedXR: true, ejemplos: ["Hong Kong", "Panamá (dolarizado)", "Eurozona (parcial)"], costo: "Pierde la política monetaria como herramienta doméstica" },
+    controles: { capital: false, monetariaIndep: true, fixedXR: true, ejemplos: ["China (parcial)", "muchos países en desarrollo en el siglo XX"], costo: "Restringe acceso de los ciudadanos a los mercados financieros internacionales" },
+  };
+  return { ...p, regime: C[p.choice] };
+}
+
+function renderTrilema(base, cur) {
+  // SVG ad-hoc para el triángulo del trilema
+  const W = 620, H = 420;
+  const cx = W / 2, cy = H / 2 + 20;
+  const R = 140;
+  // 3 vértices
+  const v1 = { x: cx, y: cy - R, label: "Flujos de capital libres", key: "capital" }; // arriba
+  const v2 = { x: cx - R * 0.866, y: cy + R * 0.5, label: "Política monetaria independiente", key: "monetariaIndep" }; // abajo izq
+  const v3 = { x: cx + R * 0.866, y: cy + R * 0.5, label: "Tipo de cambio fijo", key: "fixedXR" }; // abajo der
+  const reg = cur.regime;
+  const activeColor = (active) => (active ? COLORS.teal : COLORS.coral);
+  const sacrificed = !reg.capital ? "Flujos de capital libres" : !reg.monetariaIndep ? "Política monetaria independiente" : "Tipo de cambio fijo";
+  // Lado activo: el lado opuesto al vértice sacrificado
+  const sideHighlightedFrom = !reg.capital ? v2 : !reg.monetariaIndep ? v1 : v1;
+  const sideHighlightedTo = !reg.capital ? v3 : !reg.monetariaIndep ? v3 : v2;
+  const triangleSvg = `<svg viewBox="0 0 ${W} ${H}" class="chart-svg" role="img" aria-label="Trinidad imposible">
+    <rect width="${W}" height="${H}" fill="#fff"/>
+    <polygon points="${v1.x},${v1.y} ${v2.x},${v2.y} ${v3.x},${v3.y}" fill="rgba(15,139,141,0.06)" stroke="#bcd0d3" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="${sideHighlightedFrom.x}" y1="${sideHighlightedFrom.y}" x2="${sideHighlightedTo.x}" y2="${sideHighlightedTo.y}" stroke="${COLORS.teal}" stroke-width="6" stroke-linecap="round"/>
+    ${[v1, v2, v3].map((v) => {
+      const active = reg[v.key];
+      const color = activeColor(active);
+      return `<circle cx="${v.x}" cy="${v.y}" r="11" fill="${color}" stroke="#fff" stroke-width="3"/>
+        <text x="${v.x}" y="${v.y - 22}" text-anchor="middle" font-size="13" font-weight="900" fill="${color}" paint-order="stroke" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">${esc(v.label)}</text>
+        <text x="${v.x}" y="${v.y - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${active ? "✓" : "✗"}</text>`;
+    }).join("")}
+    <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-size="14" font-weight="900" fill="${COLORS.coral}">Sacrificado:</text>
+    <text x="${cx}" y="${cy + 28}" text-anchor="middle" font-size="14" font-weight="900" fill="${COLORS.coral}">${esc(sacrificed)}</text>
+    <text x="${cx}" y="${cy + 56}" text-anchor="middle" font-size="11" fill="#5f6b76">${esc(cur.regime.ejemplos.slice(0, 3).join(" · "))}</text>
+  </svg>`;
+  const trilemaCard = `<article class="chart-card wide">
+    <div class="chart-top">
+      <div>
+        <h3 class="chart-title">El trilema (trinidad imposible)</h3>
+        <p class="chart-subtitle">Solo se pueden elegir 2 de los 3 vértices a la vez. El elegido se sacrifica con un costo concreto.</p>
+      </div>
+    </div>
+    ${triangleSvg}
+  </article>`;
+  const equations = [
+    {
+      label: "Régimen actual",
+      tag: cur.choice,
+      formula: "Compatibilidad: 2 vértices activos, 1 sacrificado",
+      baseHTML: `Capital libre: ${base.regime.capital ? "✓" : "✗"} ; Política monetaria indep: ${base.regime.monetariaIndep ? "✓" : "✗"} ; TC fijo: ${base.regime.fixedXR ? "✓" : "✗"}`,
+      curHTML: `Capital libre: ${cur.regime.capital ? "✓" : "✗"} ; Política monetaria indep: ${cur.regime.monetariaIndep ? "✓" : "✗"} ; TC fijo: ${cur.regime.fixedXR ? "✓" : "✗"}`,
+      note: cur.regime.costo,
+    },
+  ];
+  return {
+    formulas: ["Solo 2 de 3: capital libre, política monetaria, tasa fija", "Trilema = Trinidad Imposible"],
+    links: [],
+    charts: trilemaCard,
+    equations,
+    steps: [
+      `Los tres objetivos del trilema no pueden lograrse simultáneamente (Mundell, 1963).`,
+      `Régimen seleccionado: ${cur.choice === "monetaria" ? "monetaria independiente con tasa flexible" : cur.choice === "fija" ? "tasa fija con monetaria endógena" : "monetaria + tasa fija con controles de capital"}.`,
+      `Costo: ${cur.regime.costo}.`,
+      `Países que históricamente ejemplifican esta combinación: ${cur.regime.ejemplos.join(", ")}.`,
+    ],
+    rows: [
+      row("Capital libre (1=sí)", base.regime.capital ? 1 : 0, cur.regime.capital ? 1 : 0, 0),
+      row("Política monetaria indep.", base.regime.monetariaIndep ? 1 : 0, cur.regime.monetariaIndep ? 1 : 0, 0),
+      row("Tipo de cambio fijo", base.regime.fixedXR ? 1 : 0, cur.regime.fixedXR ? 1 : 0, 0),
+    ],
+    shocks: {
+      title: "Las tres combinaciones posibles",
+      hint: "Cada fila es una elección. ✓ activo · ✗ sacrificado",
+      columns: [
+        { key: "capital", label: "Cap. libre" },
+        { key: "monetaria", label: "Pol. monetaria" },
+        { key: "fija", label: "TC fijo" },
+      ],
+      rows: [
+        { shock: "Mon. indep + TC flex (US, UK, COL)", effects: { capital: "up", monetaria: "up", fija: "down" }, note: "Volatilidad del tipo de cambio" },
+        { shock: "TC fijo + capital libre (HK, dolarizados)", effects: { capital: "up", monetaria: "down", fija: "up" }, note: "Pierde monetaria como herramienta" },
+        { shock: "Mon. indep + TC fijo + controles (China)", effects: { capital: "down", monetaria: "up", fija: "up" }, note: "Restringe mercados financieros internacionales" },
+      ],
+    },
+  };
+}
+
+// ---- 4. Estabilización automática (enfoque Poole) ----
+function computePoole(p) {
+  // Modelo simplificado: Y = f(IS_shock, LM_shock, regime)
+  // Régimen flexible: choque IS no afecta Y (q absorbe), choque LM cambia Y
+  // Régimen fijo: choque IS afecta Y, choque LM no afecta Y (M endogeniza)
+  const regimeFlex = p.regime === "flex";
+  // Y_base = 100 (potencial) ; choques varían
+  let Y, qChange = 0, MChange = 0;
+  if (regimeFlex) {
+    Y = 100 + p.lmShock * 1.0; // monetario expande Y; real se neutraliza
+    qChange = -p.isShock * 0.06; // choque real revalúa
+    MChange = 0;
+  } else {
+    // fija
+    Y = 100 + p.isShock * 1.0; // real expande; monetario se acomoda
+    qChange = 0; // peg
+    MChange = -p.lmShock * 1.0; // M se ajusta para neutralizar
+  }
+  const Yvol = Math.abs(Y - 100);
+  return { ...p, Y, qChange, MChange, Yvol };
+}
+
+function renderPoole(base, cur) {
+  const flex = cur.regime === "flex";
+  // Dos paneles: uno por régimen, mostrando cómo absorbe el choque
+  const panelTitle = flex
+    ? "Régimen FLEXIBLE: ¿qué pasa con un choque IS?"
+    : "Régimen FIJO: ¿qué pasa con un choque LM?";
+  const panelSubtitle = flex
+    ? "El tipo de cambio absorbe los choques REALES (IS): Y queda en Y*. El costo es la volatilidad de q."
+    : "La oferta de M absorbe los choques MONETARIOS (LM): Y queda en Y*. El costo es la volatilidad de M.";
+  const yDomain = [60, 140];
+  const xDomain = [0, 200];
+  // Curva IS* (positiva en (Y, e)) y LM* vertical
+  const yEq = cur.Y;
+  const isShock = cur.isShock;
+  const lmShock = cur.lmShock;
+  // Visualizamos solo el panel del régimen activo
+  const charts = [
+    lineChart({
+      title: panelTitle,
+      subtitle: panelSubtitle,
+      xLabel: "Producto Y",
+      yLabel: "Tipo de cambio e",
+      xDomain: [60, 140],
+      yDomain: [0.5, 2.0],
+      curves: [
+        { label: "IS* base", color: COLORS.base, dash: "7 6", points: [{ x: 70, y: 0.6 }, { x: 130, y: 1.8 }] },
+        ...(isShock !== 0 ? [{ label: "IS* nueva", color: COLORS.coral, points: [{ x: 70 + isShock * 0.5, y: 0.6 + isShock * 0.01 }, { x: 130 + isShock * 0.5, y: 1.8 + isShock * 0.01 }] }] : []),
+        { label: "LM* base", color: COLORS.base, dash: "2 5", points: [{ x: 100, y: 0.5 }, { x: 100, y: 2 }] },
+        ...(lmShock !== 0 ? [{ label: "LM* nueva", color: COLORS.blue, points: [{ x: 100 + (flex ? lmShock : 0), y: 0.5 }, { x: 100 + (flex ? lmShock : 0), y: 2 }] }] : []),
+      ],
+      vLines: [{ x: 100, label: "Y* = 100", color: COLORS.green, dash: "5 5" }],
+      crossGuides: [{ orientation: "v", x: cur.Y, color: COLORS.teal, label: `Y = ${fmt(cur.Y, 1)}` }],
+      markers: [{ x: cur.Y, y: 1 + cur.qChange, label: "Equilibrio", color: COLORS.teal, guides: true, pulse: true }],
+      arrows: moveArrow({ x: 100, y: 1 }, { x: cur.Y, y: 1 + cur.qChange }, flex ? "q absorbe IS" : "M absorbe LM", COLORS.teal),
+      wide: true,
+    }),
+    barChart({
+      title: "Volatilidad: ¿en qué variable se absorbe el choque?",
+      subtitle: flex ? "Flexible neutraliza IS pero crea volatilidad cambiaria." : "Fija neutraliza LM pero crea volatilidad de la oferta monetaria.",
+      yLabel: "Magnitud absoluta",
+      bars: [
+        { label: "|Y - Y*|", base: 0, value: cur.Yvol, color: cur.Yvol > 0.5 ? COLORS.coral : COLORS.green, digits: 2 },
+        { label: "|Δq|", base: 0, value: Math.abs(cur.qChange), color: COLORS.amber, digits: 2 },
+        { label: "|ΔM|", base: 0, value: Math.abs(cur.MChange), color: COLORS.blue, digits: 1 },
+      ],
+    }),
+  ].join("");
+  const equations = [
+    {
+      label: "Resultado bajo el régimen elegido",
+      tag: cur.regime,
+      formula: flex ? "Choque IS → q absorbe; Y = Y*. Choque LM → Y cambia." : "Choque LM → M absorbe; Y = Y*. Choque IS → Y cambia.",
+      baseHTML: `Y = <b>100</b>; q = <b>1.00</b>; M = <b>120</b> (sin choque)`,
+      curHTML: `Y = <b>${fmt(cur.Y, 1)}</b>; q = <b>${fmt(1 + cur.qChange, 2)}</b>; M = <b>${fmt(120 + cur.MChange, 1)}</b>`,
+      note: "Síntesis Poole: si los choques son reales, conviene flexible; si son monetarios, conviene fija.",
+    },
+  ];
+  return {
+    formulas: ["Flex: q absorbe IS; M choque cambia Y", "Fijo: M absorbe LM; IS choque cambia Y"],
+    links: [],
+    charts,
+    equations,
+    steps: [
+      `El régimen elegido es ${flex ? "FLEXIBLE" : "FIJO"}.`,
+      flex
+        ? `Un choque real IS de ${fmt(cur.isShock, 1)} se absorbe íntegramente en q (cambia ${fmt(cur.qChange * 100, 1)}%) y Y queda en Y*.`
+        : `Un choque monetario LM de ${fmt(cur.lmShock, 1)} se absorbe íntegramente en M (cambia ${fmt(cur.MChange, 1)}) y Y queda en Y*.`,
+      flex
+        ? `Pero un choque LM de ${fmt(cur.lmShock, 1)} sí mueve Y; ahora Y = ${fmt(cur.Y, 1)}.`
+        : `Pero un choque IS de ${fmt(cur.isShock, 1)} sí mueve Y; ahora Y = ${fmt(cur.Y, 1)}.`,
+      `Volatilidad de Y: ${fmt(cur.Yvol, 2)}. ${cur.Yvol < 0.5 ? "Estabilización exitosa." : "Régimen no estabiliza este tipo de choque."}`,
+    ],
+    rows: [
+      row("Producto Y", 100, cur.Y, 1),
+      row("Volatilidad |Y - Y*|", 0, cur.Yvol, 2),
+      row("Cambio en q", 0, cur.qChange, 2),
+      row("Cambio en M", 0, cur.MChange, 1),
+    ],
+    shocks: {
+      title: "Síntesis del enfoque de Poole",
+      hint: "↑ aumenta · ↓ disminuye · — sin cambio. Y* = producto potencial.",
+      columns: [
+        { key: "yFlex", label: "Y (flex)" },
+        { key: "qFlex", label: "q (flex)" },
+        { key: "yFijo", label: "Y (fijo)" },
+        { key: "mFijo", label: "M (fijo)" },
+      ],
+      rows: [
+        { shock: "Choque IS positivo (↑ G, ↑ a, ↑ h)", effects: { yFlex: "flat", qFlex: "down", yFijo: "up", mFijo: "flat" }, note: "Flex neutraliza, fijo no." },
+        { shock: "Choque IS negativo", effects: { yFlex: "flat", qFlex: "up", yFijo: "down", mFijo: "flat" } },
+        { shock: "Choque LM positivo (↑ M, ↓ n)", effects: { yFlex: "up", qFlex: "up", yFijo: "flat", mFijo: "down" }, note: "Fijo neutraliza, flex no." },
+        { shock: "Choque LM negativo", effects: { yFlex: "down", qFlex: "down", yFijo: "flat", mFijo: "up" } },
+      ],
+    },
+  };
+}
+
 const models = [
   {
     id: "pib",
@@ -2918,6 +3420,81 @@ const models = [
     ],
     compute: computeUnemployment,
     render: renderUnemployment,
+  },
+  {
+    id: "formal-informal",
+    title: "Sector formal e informal · salario mínimo",
+    source: "Presentación 25 (¿Por qué desempleo?)",
+    subtitle: "Caja de Edgeworth con dos sectores. Un salario mínimo en el sector formal expulsa trabajadores al informal y baja el salario informal.",
+    defaults: { Ltotal: 100, aSI: 5, bSI: 0.04, aSF: 8, bSF: 0.05, wmin: 3 },
+    controls: [
+      { type: "group", label: "Mercado laboral" },
+      { key: "Ltotal", label: "Fuerza laboral total", min: 60, max: 140, step: 5 },
+      { key: "aSI", label: "Productividad informal a_SI", min: 3.5, max: 7, step: 0.1 },
+      { key: "aSF", label: "Productividad formal a_SF", min: 5, max: 10, step: 0.1 },
+      { key: "bSI", label: "Pendiente DD informal", min: 0.02, max: 0.08, step: 0.005 },
+      { key: "bSF", label: "Pendiente DD formal", min: 0.02, max: 0.08, step: 0.005 },
+      { type: "group", label: "Política" },
+      { key: "wmin", label: "Salario mínimo (formal)", min: 1.5, max: 5.5, step: 0.1 },
+    ],
+    compute: computeFormalInformal,
+    render: renderFormalInformal,
+  },
+  {
+    id: "training",
+    title: "Programa de capacitación",
+    source: "Presentación 25 · diapositivas 24-26",
+    subtitle: "La capacitación desplaza la demanda de trabajo a la derecha (mayor productividad) y la oferta a la izquierda (mejor outside option). Salario sube; empleo es ambiguo.",
+    defaults: { a: 10, c0: 0, b: 0.05, d: 0.04, training: 0, alphaD: 6, alphaO: 3 },
+    controls: [
+      { type: "group", label: "Capacitación" },
+      { key: "training", label: "Intensidad t", min: 0, max: 1, step: 0.05 },
+      { key: "alphaD", label: "Ganancia productividad α_D", min: 2, max: 12, step: 0.5 },
+      { key: "alphaO", label: "Mejora outside option α_O", min: 0, max: 8, step: 0.5 },
+      { type: "group", label: "Mercado laboral base" },
+      { key: "a", label: "Demanda autónoma a", min: 6, max: 14, step: 0.5 },
+      { key: "c0", label: "Oferta autónoma c₀", min: -2, max: 4, step: 0.5 },
+      { key: "b", label: "Pendiente demanda b", min: 0.02, max: 0.1, step: 0.005 },
+      { key: "d", label: "Pendiente oferta d", min: 0.02, max: 0.1, step: 0.005 },
+    ],
+    compute: computeTraining,
+    render: renderTraining,
+  },
+  {
+    id: "trilema",
+    title: "Trinidad imposible (trilema)",
+    source: "Presentaciones 39 y Ecabcpdef1 · Mundell (1963)",
+    subtitle: "Los tres objetivos (capital libre, política monetaria independiente, tipo de cambio fijo) son incompatibles entre sí. Solo se pueden alcanzar 2 de los 3.",
+    defaults: { choice: "monetaria" },
+    controls: [
+      {
+        type: "segmented",
+        key: "choice",
+        label: "Régimen elegido",
+        options: [
+          { label: "Mon. + flex (USA, COL)", value: "monetaria" },
+          { label: "TC fijo + capital (HK)", value: "fija" },
+          { label: "Mon. + fija + controles (CN)", value: "controles" },
+        ],
+      },
+    ],
+    compute: computeTrilema,
+    render: renderTrilema,
+  },
+  {
+    id: "poole",
+    title: "Estabilización automática (Poole)",
+    source: "Presentación 39 · Mundell-Fleming",
+    subtitle: "El régimen cambiario actúa como mecanismo automático de estabilización: flexible neutraliza choques reales (IS); fijo neutraliza choques monetarios (LM).",
+    defaults: { regime: "flex", isShock: 0, lmShock: 0 },
+    controls: [
+      { type: "segmented", key: "regime", label: "Régimen", options: [{ label: "Flexible", value: "flex" }, { label: "Fijo", value: "fixed" }] },
+      { type: "group", label: "Choques exógenos" },
+      { key: "isShock", label: "Choque IS (real)", min: -20, max: 20, step: 1 },
+      { key: "lmShock", label: "Choque LM (monetario)", min: -20, max: 20, step: 1 },
+    ],
+    compute: computePoole,
+    render: renderPoole,
   },
   {
     id: "cycles",
