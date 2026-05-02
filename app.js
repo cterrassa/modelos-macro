@@ -96,9 +96,9 @@ function lineChart({
   wide = false,
 }) {
   const id = `clip-${chartSerial++}`;
-  const width = 620;
-  const height = 385;
-  const margin = { left: 58, right: 28, top: 28, bottom: 56 };
+  const width = 660;
+  const height = 420;
+  const margin = { left: 72, right: 36, top: 30, bottom: 66 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
   const sx = (x) => margin.left + ((x - xDomain[0]) / (xDomain[1] - xDomain[0])) * plotW;
@@ -121,12 +121,12 @@ function lineChart({
     ...xTicks.map(
       (x) =>
         `<line x1="${sx(x)}" x2="${sx(x)}" y1="${margin.top}" y2="${margin.top + plotH}" stroke="#edf1f3" />` +
-        `<text class="tick-label" x="${sx(x)}" y="${height - 30}" text-anchor="middle">${fmt(x, 1)}</text>`,
+        `<text class="tick-label" x="${sx(x)}" y="${margin.top + plotH + 22}" text-anchor="middle">${fmt(x, 1)}</text>`,
     ),
     ...yTicks.map(
       (y) =>
         `<line x1="${margin.left}" x2="${margin.left + plotW}" y1="${sy(y)}" y2="${sy(y)}" stroke="#edf1f3" />` +
-        `<text class="tick-label" x="${margin.left - 10}" y="${sy(y) + 4}" text-anchor="end">${fmt(y, 1)}</text>`,
+        `<text class="tick-label" x="${margin.left - 12}" y="${sy(y) + 4}" text-anchor="end">${fmt(y, 1)}</text>`,
     ),
   ].join("");
 
@@ -219,8 +219,8 @@ function lineChart({
   const arrowDefs = arrows
     .map((arrow, i) => {
       const color = arrow.color || COLORS.teal;
-      return `<marker id="${id}-arrow-${i}" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="${color}" stroke="#ffffff" stroke-width="0.6" />
+      return `<marker id="${id}-arrow-${i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="${color}" stroke="${color}" stroke-width="0.4" stroke-linejoin="round" />
       </marker>`;
     })
     .join("");
@@ -233,13 +233,13 @@ function lineChart({
       const x2 = sx(arrow.x2);
       const y2 = sy(arrow.y2);
       const mx = (x1 + x2) / 2 + (arrow.labelDx || 0);
-      const my = (y1 + y2) / 2 + (arrow.labelDy || -10);
+      const my = (y1 + y2) / 2 + (arrow.labelDy || -12);
       const color = arrow.color || COLORS.teal;
-      const w = arrow.width || 4;
-      return `<line clip-path="url(#${id})" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffffff" stroke-width="${w + 3.5}" stroke-linecap="round" opacity="0.9" />` +
+      const w = arrow.width || 2.4;
+      return `<line clip-path="url(#${id})" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffffff" stroke-width="${w + 1.8}" stroke-linecap="round" opacity="0.85" />` +
         `<line clip-path="url(#${id})" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}" stroke-linecap="round" marker-end="url(#${id}-arrow-${i})" opacity="${arrow.opacity || 0.95}" ${arrow.dash ? `stroke-dasharray="${arrow.dash}"` : ""}/>` +
         (arrow.label
-          ? `<text class="arrow-label" x="${clamp(mx, margin.left + 12, margin.left + plotW - 12)}" y="${clamp(my, margin.top + 14, margin.top + plotH - 8)}" text-anchor="middle" fill="${color}">${esc(arrow.label)}</text>`
+          ? `<text class="arrow-label" x="${clamp(mx, margin.left + 14, margin.left + plotW - 14)}" y="${clamp(my, margin.top + 16, margin.top + plotH - 10)}" text-anchor="middle" fill="${color}">${esc(arrow.label)}</text>`
           : "");
     })
     .join("");
@@ -284,17 +284,17 @@ function lineChart({
       ${segSvg}
       ${arrowSvg}
       ${markerSvg}
-      <text class="axis-label" x="${margin.left + plotW / 2}" y="${height - 8}" text-anchor="middle">${esc(xLabel)}</text>
-      <text class="axis-label" transform="translate(16 ${margin.top + plotH / 2}) rotate(-90)" text-anchor="middle">${esc(yLabel)}</text>
+      <text class="axis-label" x="${margin.left + plotW / 2}" y="${height - 14}" text-anchor="middle">${esc(xLabel)}</text>
+      <text class="axis-label" transform="translate(20 ${margin.top + plotH / 2}) rotate(-90)" text-anchor="middle">${esc(yLabel)}</text>
     </svg>
   </article>`;
 }
 
 function barChart({ title, subtitle = "", bars, yLabel = "Valor", wide = false }) {
   const id = `bar-${chartSerial++}`;
-  const width = 620;
-  const height = 385;
-  const margin = { left: 58, right: 28, top: 28, bottom: 72 };
+  const width = 660;
+  const height = 420;
+  const margin = { left: 72, right: 36, top: 30, bottom: 84 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
   const vals = bars.flatMap((b) => [b.base, b.value]);
@@ -308,7 +308,7 @@ function barChart({ title, subtitle = "", bars, yLabel = "Valor", wide = false }
     .map(
       (y) =>
         `<line x1="${margin.left}" x2="${margin.left + plotW}" y1="${sy(y)}" y2="${sy(y)}" stroke="#edf1f3" />` +
-        `<text class="tick-label" x="${margin.left - 10}" y="${sy(y) + 4}" text-anchor="end">${fmt(y, 1)}</text>`,
+        `<text class="tick-label" x="${margin.left - 12}" y="${sy(y) + 4}" text-anchor="end">${fmt(y, 1)}</text>`,
     )
     .join("");
   const columns = bars
@@ -320,8 +320,8 @@ function barChart({ title, subtitle = "", bars, yLabel = "Valor", wide = false }
       const valueY = bar.value >= 0 ? sy(bar.value) : zeroY;
       return `<rect x="${cx - barW - 4}" y="${baseY}" width="${barW}" height="${baseH}" fill="${COLORS.base}" opacity="0.58" rx="5"/>
         <rect x="${cx + 4}" y="${valueY}" width="${barW}" height="${valueH}" fill="${bar.color || COLORS.teal}" rx="5"/>
-        <text class="tick-label" x="${cx}" y="${height - 42}" text-anchor="middle">${esc(bar.label)}</text>
-        <text class="tick-label" x="${cx}" y="${height - 26}" text-anchor="middle">${fmt(bar.value, bar.digits ?? 1, bar.unit || "")}</text>`;
+        <text class="axis-label" x="${cx}" y="${margin.top + plotH + 24}" text-anchor="middle">${esc(bar.label)}</text>
+        <text class="marker-label" x="${cx}" y="${margin.top + plotH + 46}" text-anchor="middle">${fmt(bar.value, bar.digits ?? 1, bar.unit || "")}</text>`;
     })
     .join("");
   return `<article class="chart-card ${wide ? "wide" : ""}">
@@ -341,7 +341,7 @@ function barChart({ title, subtitle = "", bars, yLabel = "Valor", wide = false }
       <line x1="${margin.left}" x2="${margin.left + plotW}" y1="${zeroY}" y2="${zeroY}" stroke="#6c7781" stroke-width="1.5"/>
       <line x1="${margin.left}" x2="${margin.left}" y1="${margin.top}" y2="${margin.top + plotH}" stroke="#6c7781" stroke-width="1.5"/>
       ${columns}
-      <text class="axis-label" transform="translate(16 ${margin.top + plotH / 2}) rotate(-90)" text-anchor="middle">${esc(yLabel)}</text>
+      <text class="axis-label" transform="translate(20 ${margin.top + plotH / 2}) rotate(-90)" text-anchor="middle">${esc(yLabel)}</text>
     </svg>
   </article>`;
 }
@@ -413,6 +413,48 @@ function equationsPanel(items = []) {
       <span class="equations-hint">Verde sube, rojo baja respecto al escenario base</span>
     </header>
     <div class="equations-grid">${cards}</div>
+  </section>`;
+}
+
+function shocksTablePanel(spec) {
+  if (!spec || !spec.columns || !spec.rows || !spec.rows.length) return "";
+  const symFor = (v) => {
+    if (v === "up" || v === "↑") return "↑";
+    if (v === "down" || v === "↓") return "↓";
+    if (v === "mixed" || v === "⇄" || v === "~") return "⇄";
+    if (v === "flat" || v === "—" || v === "-") return "—";
+    return v || "—";
+  };
+  const clsFor = (v) => {
+    if (v === "up" || v === "↑") return "arrow-up";
+    if (v === "down" || v === "↓") return "arrow-down";
+    if (v === "mixed" || v === "⇄" || v === "~") return "arrow-mixed";
+    return "arrow-flat";
+  };
+  const head = `<th>Choque</th>${spec.columns.map((c) => `<th>${esc(c.label || c.key)}</th>`).join("")}`;
+  const body = spec.rows
+    .map((r) => {
+      const cells = spec.columns
+        .map((c) => {
+          const e = (r.effects || {})[c.key];
+          return `<td class="${clsFor(e)}" title="${esc(c.label || c.key)}">${symFor(e)}</td>`;
+        })
+        .join("");
+      return `<tr><td class="var-name">${esc(r.shock)}${r.note ? ` <span class="footnote">· ${esc(r.note)}</span>` : ""}</td>${cells}</tr>`;
+    })
+    .join("");
+  return `<section class="shocks-panel">
+    <header class="connection-head">
+      <h3 class="panel-title">${esc(spec.title || "Estática comparativa teórica")}</h3>
+      <span class="connection-hint">${esc(spec.hint || "↑ aumenta · ↓ disminuye · — sin cambio · ⇄ ambiguo")}</span>
+    </header>
+    ${spec.subtitle ? `<p class="footnote" style="margin-top:6px">${esc(spec.subtitle)}</p>` : ""}
+    <div class="data-table-wrap">
+      <table class="shock-table">
+        <thead><tr>${head}</tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
   </section>`;
 }
 
@@ -600,6 +642,22 @@ function renderPib(base, cur) {
       row("Exportaciones netas XN", base.NX, cur.NX, 1),
       row("PIB Y", base.Y, cur.Y, 1),
     ],
+    shocks: {
+      title: "Estática comparativa · Identidad contable Y = C + I + G + XN",
+      subtitle: "Identidad pura: cada componente entra punto a punto en el PIB. XN = X − M.",
+      columns: [
+        { key: "Y", label: "PIB" },
+        { key: "NX", label: "XN" },
+        { key: "abs", label: "Absorción" },
+      ],
+      rows: [
+        { shock: "↑ C  (consumo)", effects: { Y: "up", NX: "flat", abs: "up" } },
+        { shock: "↑ I  (inversión)", effects: { Y: "up", NX: "flat", abs: "up" } },
+        { shock: "↑ G  (gasto público)", effects: { Y: "up", NX: "flat", abs: "up" } },
+        { shock: "↑ X  (exportaciones)", effects: { Y: "up", NX: "up", abs: "flat" } },
+        { shock: "↑ M  (importaciones)", effects: { Y: "down", NX: "down", abs: "flat" }, note: "M se resta del PIB" },
+      ],
+    },
   };
 }
 
@@ -749,6 +807,23 @@ function renderProduction(base, cur) {
       row("Ingreso del trabajo", base.laborIncome, cur.laborIncome, 2),
       row("Ingreso del capital", base.capitalIncome, cur.capitalIncome, 2),
     ],
+    shocks: {
+      title: "Estática comparativa · Función de producción y mercados de factores",
+      subtitle: "Y = A·K^α·L^(1−α). En competencia, w/P = PMgL y r/P = PMgK.",
+      columns: [
+        { key: "Y", label: "Y potencial" },
+        { key: "w", label: "w/P" },
+        { key: "r", label: "r/P" },
+        { key: "wL", label: "Ingreso L" },
+        { key: "rK", label: "Ingreso K" },
+      ],
+      rows: [
+        { shock: "↑ A  (tecnología)", effects: { Y: "up", w: "up", r: "up", wL: "up", rK: "up" }, note: "ambos factores ganan" },
+        { shock: "↑ K  (más capital)", effects: { Y: "up", w: "up", r: "down", wL: "up", rK: "mixed" }, note: "PMgK cae por rendim. decrec." },
+        { shock: "↑ L  (más trabajo)", effects: { Y: "up", w: "down", r: "up", wL: "mixed", rK: "up" } },
+        { shock: "↑ α  (peso del capital)", effects: { Y: "flat", w: "down", r: "up", wL: "down", rK: "up" }, note: "redistribuye hacia K" },
+      ],
+    },
   };
 }
 
@@ -897,6 +972,39 @@ function renderClosed(base, cur) {
       row("Ahorro público", base.publicSaving, cur.publicSaving, 2),
       row("Tasa de interés r", base.r, cur.r, 2, "%"),
     ],
+    shocks: cur.d > 0
+      ? {
+          title: "Estática comparativa · Cerrada LP MODIFICADA (consumo responde a r)",
+          subtitle: "Cuando d > 0, el ahorro tiene pendiente positiva en r; ↑G y ↑h ya no son neutrales sobre C.",
+          columns: [
+            { key: "C", label: "C" },
+            { key: "I", label: "I" },
+            { key: "r", label: "r" },
+          ],
+          rows: [
+            { shock: "↑ Y  (más producto potencial)", effects: { C: "up", I: "up", r: "down" } },
+            { shock: "↑ G  (gasto público)", effects: { C: "down", I: "down", r: "up" }, note: "↑r reduce C vía d" },
+            { shock: "↑ T  (impuestos)", effects: { C: "down", I: "up", r: "down" } },
+            { shock: "↑ a  (consumo autónomo)", effects: { C: "up", I: "down", r: "up" } },
+            { shock: "↑ h  (inversión autónoma)", effects: { C: "down", I: "up", r: "up" }, note: "I sube en neto pero menos por crowding-out parcial" },
+          ],
+        }
+      : {
+          title: "Estática comparativa · Cerrada LP BÁSICA",
+          subtitle: "El ahorro es vertical (no depende de r); ↑G genera crowding-out perfecto sobre I.",
+          columns: [
+            { key: "C", label: "C" },
+            { key: "I", label: "I" },
+            { key: "r", label: "r" },
+          ],
+          rows: [
+            { shock: "↑ Y  (más producto potencial)", effects: { C: "up", I: "up", r: "down" } },
+            { shock: "↑ G  (gasto público)", effects: { C: "flat", I: "down", r: "up" }, note: "crowding-out perfecto" },
+            { shock: "↑ T  (impuestos)", effects: { C: "down", I: "up", r: "down" } },
+            { shock: "↑ a  (consumo autónomo)", effects: { C: "up", I: "down", r: "up" } },
+            { shock: "↑ h  (inversión autónoma)", effects: { C: "flat", I: "flat", r: "up" }, note: "I total no cambia (oferta de fondos fija)" },
+          ],
+        },
   };
 }
 
@@ -990,6 +1098,22 @@ function renderMoney(base, cur) {
       row("Multiplicador m", base.m, cur.m, 2),
       row("Oferta monetaria M", base.M, cur.M, 1),
     ],
+    shocks: {
+      title: "Estática comparativa · Multiplicador bancario",
+      subtitle: "M = m·B con m = (E/D + 1) / (E/D + R/D). El multiplicador cae cuando suben las fugas E/D o R/D.",
+      columns: [
+        { key: "m", label: "m" },
+        { key: "M", label: "M" },
+      ],
+      rows: [
+        { shock: "↑ B  (compra de bonos del BC)", effects: { m: "flat", M: "up" }, note: "OMA expansiva" },
+        { shock: "↓ B  (venta de bonos del BC)", effects: { m: "flat", M: "down" }, note: "OMA contractiva" },
+        { shock: "↑ R/D  (encaje o reservas excedentes)", effects: { m: "down", M: "down" } },
+        { shock: "↓ R/D", effects: { m: "up", M: "up" } },
+        { shock: "↑ E/D  (público demanda más efectivo)", effects: { m: "down", M: "down" } },
+        { shock: "↓ E/D", effects: { m: "up", M: "up" } },
+      ],
+    },
   };
 }
 
@@ -1119,6 +1243,25 @@ function renderInflation(base, cur) {
       row("Viajes óptimos al banco N*", base.N, cur.N, 2),
       row("Saldo promedio óptimo", base.cash, cur.cash, 2),
     ],
+    shocks: {
+      title: "Estática comparativa · Cuantitativa, Fisher y Baumol-Tobin",
+      subtitle: "MV = PY, i = r + πe, SPO = √(YF/2i). Neutralidad: en LP la inflación replica el crecimiento de M.",
+      columns: [
+        { key: "P", label: "P" },
+        { key: "pi", label: "π" },
+        { key: "i", label: "i" },
+        { key: "SPO", label: "SPO" },
+      ],
+      rows: [
+        { shock: "↑ M  (cantidad de dinero)", effects: { P: "up", pi: "flat", i: "flat", SPO: "flat" }, note: "neutralidad: solo niveles" },
+        { shock: "↑ V  (velocidad)", effects: { P: "up", pi: "flat", i: "flat", SPO: "flat" } },
+        { shock: "↑ Y  (producto real)", effects: { P: "down", pi: "flat", i: "flat", SPO: "up" } },
+        { shock: "↑ μ  (crecimiento de M)", effects: { P: "up", pi: "up", i: "up", SPO: "down" }, note: "supraneutralidad: i sube por Fisher" },
+        { shock: "↑ g  (crecimiento real)", effects: { P: "down", pi: "down", i: "down", SPO: "up" } },
+        { shock: "↑ r  (tasa real)", effects: { P: "flat", pi: "flat", i: "up", SPO: "down" } },
+        { shock: "↑ F  (costo de ir al banco)", effects: { P: "flat", pi: "flat", i: "flat", SPO: "up" } },
+      ],
+    },
   };
 }
 
@@ -1273,6 +1416,26 @@ function renderSmallOpen(base, cur) {
       row("Exportaciones netas XN", base.NX, cur.NX, 2),
       row("TCR real", base.q, cur.q, 2),
     ],
+    shocks: {
+      title: "Estática comparativa · Economía abierta PEQUEÑA LP",
+      subtitle: "r = r* fija (movilidad perfecta y país pequeño). El TCR ajusta hasta que XN(q) = S − I.",
+      columns: [
+        { key: "r", label: "r" },
+        { key: "S", label: "S" },
+        { key: "I", label: "I" },
+        { key: "q", label: "q (TCR)" },
+        { key: "XN", label: "XN" },
+      ],
+      rows: [
+        { shock: "↑ a  (consumo autónomo)", effects: { r: "flat", S: "down", I: "flat", q: "down", XN: "down" }, note: "menor S − I → revaluación" },
+        { shock: "↑ h  (inversión autónoma)", effects: { r: "flat", S: "flat", I: "up", q: "down", XN: "down" } },
+        { shock: "↑ G  (gasto público)", effects: { r: "flat", S: "down", I: "flat", q: "down", XN: "down" } },
+        { shock: "↓ T  (impuestos)", effects: { r: "flat", S: "down", I: "flat", q: "down", XN: "down" } },
+        { shock: "↑ z  (XN autónomas)", effects: { r: "flat", S: "flat", I: "flat", q: "down", XN: "flat" }, note: "XN total no cambia" },
+        { shock: "↑ TB  (proteccionismo)", effects: { r: "flat", S: "flat", I: "flat", q: "down", XN: "flat" }, note: "compensa con revaluación" },
+        { shock: "↓ r*  (cae tasa internacional)", effects: { r: "down", S: "flat", I: "up", q: "down", XN: "down" } },
+      ],
+    },
   };
 }
 
@@ -1440,6 +1603,26 @@ function renderLargeOpen(base, cur) {
       row("Exportaciones netas XN", base.NX, cur.NX, 2),
       row("TCR real", base.q, cur.q, 2),
     ],
+    shocks: {
+      title: "Estática comparativa · Economía abierta GRANDE LP",
+      subtitle: "r es endógena (afecta i/CF). El primer cierre ocurre en S = I + CF; luego CF = XN(q).",
+      columns: [
+        { key: "r", label: "r" },
+        { key: "I", label: "I" },
+        { key: "CF", label: "CF" },
+        { key: "q", label: "q (TCR)" },
+        { key: "XN", label: "XN" },
+      ],
+      rows: [
+        { shock: "↑ a  (consumo autónomo)", effects: { r: "up", I: "down", CF: "down", q: "down", XN: "down" }, note: "menor S → más r → menos CF" },
+        { shock: "↑ h  (inversión autónoma)", effects: { r: "up", I: "up", CF: "down", q: "down", XN: "down" } },
+        { shock: "↑ G  (gasto público)", effects: { r: "up", I: "down", CF: "down", q: "down", XN: "down" } },
+        { shock: "↓ T  (impuestos)", effects: { r: "up", I: "down", CF: "down", q: "down", XN: "down" } },
+        { shock: "↑ z  (XN autónomas)", effects: { r: "flat", I: "flat", CF: "flat", q: "down", XN: "flat" } },
+        { shock: "↑ TB  (proteccionismo)", effects: { r: "flat", I: "flat", CF: "flat", q: "down", XN: "flat" } },
+        { shock: "↑ cf₀  (apetito por activos extranjeros)", effects: { r: "up", I: "down", CF: "up", q: "up", XN: "up" } },
+      ],
+    },
   };
 }
 
@@ -1567,6 +1750,24 @@ function renderUnemployment(base, cur) {
       row("Salario rígido", base.wFloor, cur.wFloor, 2),
       row("Desempleo observado teórico", base.observed * 100, cur.observed * 100, 2, "%"),
     ],
+    shocks: {
+      title: "Estática comparativa · Empleo y desempleo",
+      subtitle: "U/L = s/(s+f). El desempleo de espera aparece cuando el salario efectivo supera w*.",
+      columns: [
+        { key: "u", label: "U/L (natural)" },
+        { key: "wage", label: "w" },
+        { key: "wait", label: "Espera" },
+        { key: "obs", label: "Obs." },
+      ],
+      rows: [
+        { shock: "↑ s  (separaciones)", effects: { u: "up", wage: "flat", wait: "flat", obs: "up" } },
+        { shock: "↑ f  (enganches / capacitación)", effects: { u: "down", wage: "flat", wait: "flat", obs: "down" } },
+        { shock: "↑ subsidio de desempleo", effects: { u: "up", wage: "flat", wait: "flat", obs: "up" }, note: "↓ búsqueda → ↓ f efectivo" },
+        { shock: "↑ salario mínimo / sindicato", effects: { u: "flat", wage: "up", wait: "up", obs: "up" }, note: "Ls > Ld" },
+        { shock: "↑ salario de eficiencia", effects: { u: "up", wage: "up", wait: "up", obs: "up" } },
+        { shock: "↑ training (capacitación)", effects: { u: "down", wage: "up", wait: "down", obs: "down" } },
+      ],
+    },
   };
 }
 
@@ -1728,6 +1929,23 @@ function renderCycles(base, cur) {
       row("Nivel de precios P", base.P, cur.P, 2),
       row("Desempleo observado", base.uObs, cur.uObs, 2, "%"),
     ],
+    shocks: {
+      title: "Estática comparativa · DA-OA y Ley de Okun",
+      subtitle: "%ΔPIB ≈ 3 − 2·Δu (Okun). Choques de demanda mueven Y y P en mismo sentido; choques de oferta los mueven en sentido opuesto.",
+      columns: [
+        { key: "Y", label: "Y" },
+        { key: "P", label: "P" },
+        { key: "gap", label: "brecha" },
+        { key: "uObs", label: "u obs." },
+      ],
+      rows: [
+        { shock: "↑ choque de demanda (+)", effects: { Y: "up", P: "up", gap: "up", uObs: "down" }, note: "↑G, ↑M, optimismo" },
+        { shock: "↓ choque de demanda (−)", effects: { Y: "down", P: "down", gap: "down", uObs: "up" }, note: "recesión por demanda" },
+        { shock: "↑ choque adverso de oferta", effects: { Y: "down", P: "up", gap: "down", uObs: "up" }, note: "estanflación: ↑costos" },
+        { shock: "↓ choque favorable de oferta", effects: { Y: "up", P: "down", gap: "up", uObs: "down" }, note: "↑ productividad" },
+        { shock: "↑ Y* (crecimiento de potencial)", effects: { Y: "flat", P: "flat", gap: "down", uObs: "up" }, note: "brecha cae si Y observado fijo" },
+      ],
+    },
   };
 }
 
@@ -1852,6 +2070,23 @@ function renderIS(base, cur) {
       row("Multiplicador del gasto", base.multG, cur.multG, 2),
       row("Multiplicador de impuestos", base.multT, cur.multT, 2),
     ],
+    shocks: {
+      title: "Estática comparativa · IS / Cruz keynesiana (corto plazo, r dada)",
+      subtitle: "Y = (A − b·r)/(1 − c) con A = a − cT + h + G. dY/dG = 1/(1−c) > |dY/dT| = c/(1−c).",
+      columns: [
+        { key: "E", label: "E" },
+        { key: "Y", label: "Y" },
+        { key: "IS", label: "IS" },
+      ],
+      rows: [
+        { shock: "↑ a  (consumo autónomo)", effects: { E: "up", Y: "up", IS: "up" }, note: "IS → derecha" },
+        { shock: "↑ h  (inversión autónoma)", effects: { E: "up", Y: "up", IS: "up" } },
+        { shock: "↑ G  (gasto público)", effects: { E: "up", Y: "up", IS: "up" }, note: "ΔY = ΔG · 1/(1−c)" },
+        { shock: "↓ T  (impuestos)", effects: { E: "up", Y: "up", IS: "up" }, note: "ΔY = −ΔT · c/(1−c)" },
+        { shock: "↑ r  (sube la tasa)", effects: { E: "down", Y: "down", IS: "flat" }, note: "movimiento sobre IS" },
+        { shock: "↑ c  (PMC)", effects: { E: "up", Y: "up", IS: "up" }, note: "multiplicador más grande" },
+      ],
+    },
   };
 }
 
@@ -1966,6 +2201,23 @@ function renderLM(base, cur) {
       row("Producto Y", base.Y, cur.Y, 2),
       row("Tasa de interés r", base.r, cur.r, 2, "%"),
     ],
+    shocks: {
+      title: "Estática comparativa · LM (mercado de saldos reales)",
+      subtitle: "M/P = n + k·Y − ℓ·r. Cualquier choque que aumente M/P ampliá la LM hacia la derecha.",
+      columns: [
+        { key: "MP", label: "M/P" },
+        { key: "r", label: "r de equilib." },
+        { key: "LM", label: "LM" },
+      ],
+      rows: [
+        { shock: "↑ M  (oferta nominal)", effects: { MP: "up", r: "down", LM: "up" }, note: "LM → derecha" },
+        { shock: "↓ P  (precios)", effects: { MP: "up", r: "down", LM: "up" } },
+        { shock: "↑ n  (demanda autónoma de dinero)", effects: { MP: "flat", r: "up", LM: "down" }, note: "LM → izquierda" },
+        { shock: "↑ Y  (más producto)", effects: { MP: "flat", r: "up", LM: "flat" }, note: "movimiento sobre LM" },
+        { shock: "↑ k  (sensibilidad de Ld a Y)", effects: { MP: "flat", r: "up", LM: "flat" } },
+        { shock: "↑ ℓ  (sensibilidad de Ld a r)", effects: { MP: "flat", r: "down", LM: "flat" }, note: "LM más plana" },
+      ],
+    },
   };
 }
 
@@ -2086,6 +2338,26 @@ function renderISLM(base, cur) {
       row("Gasto autónomo A", base.A, cur.A, 2),
       row("Saldos reales M/P", base.realM, cur.realM, 2),
     ],
+    shocks: {
+      title: "Estática comparativa · IS-LM (corto plazo, economía cerrada)",
+      subtitle: "Política fiscal mueve IS · Política monetaria mueve LM · Equilibrio simultáneo en (Y*, r*).",
+      columns: [
+        { key: "IS", label: "IS" },
+        { key: "LM", label: "LM" },
+        { key: "Y", label: "Y*" },
+        { key: "r", label: "r*" },
+      ],
+      rows: [
+        { shock: "↑ G  (fiscal expansiva)", effects: { IS: "up", LM: "flat", Y: "up", r: "up" }, note: "crowding-out parcial" },
+        { shock: "↑ T  (impuestos)", effects: { IS: "down", LM: "flat", Y: "down", r: "down" } },
+        { shock: "↑ a o ↑ h  (gasto autónomo)", effects: { IS: "up", LM: "flat", Y: "up", r: "up" } },
+        { shock: "↑ M  (monetaria expansiva)", effects: { IS: "flat", LM: "up", Y: "up", r: "down" } },
+        { shock: "↓ M  (monetaria contractiva)", effects: { IS: "flat", LM: "down", Y: "down", r: "up" } },
+        { shock: "↑ P  (precios)", effects: { IS: "flat", LM: "down", Y: "down", r: "up" }, note: "deriva la pendiente de DA" },
+        { shock: "↑ n  (demanda autónoma de dinero)", effects: { IS: "flat", LM: "down", Y: "down", r: "up" } },
+        { shock: "Mix coordinado: ↑G y ↑M", effects: { IS: "up", LM: "up", Y: "up", r: "flat" }, note: "expande Y sin presionar r" },
+      ],
+    },
   };
 }
 
@@ -2205,6 +2477,24 @@ function renderAD(base, cur) {
       row("Tasa de interés r", base.r, cur.r, 2, "%"),
       row("Saldos reales M/P", base.realM, cur.realM, 2),
     ],
+    shocks: {
+      title: "Estática comparativa · Demanda agregada (DA) derivada del IS-LM",
+      subtitle: "Cada punto de la DA es un equilibrio IS-LM resuelto para un nivel de precios. Mover IS o LM exógenamente desplaza toda la DA.",
+      columns: [
+        { key: "ad", label: "DA" },
+        { key: "Y", label: "Y demandado" },
+        { key: "P", label: "P (en eje)" },
+      ],
+      rows: [
+        { shock: "↑ G  (fiscal expansiva)", effects: { ad: "up", Y: "up", P: "flat" }, note: "DA → derecha" },
+        { shock: "↓ T  (impuestos)", effects: { ad: "up", Y: "up", P: "flat" } },
+        { shock: "↑ a o ↑ h  (gasto autónomo)", effects: { ad: "up", Y: "up", P: "flat" } },
+        { shock: "↑ M  (monetaria expansiva)", effects: { ad: "up", Y: "up", P: "flat" } },
+        { shock: "↓ n  (menos demanda autónoma de dinero)", effects: { ad: "up", Y: "up", P: "flat" } },
+        { shock: "↑ P  (sube nivel de precios)", effects: { ad: "flat", Y: "down", P: "up" }, note: "movimiento sobre DA" },
+        { shock: "↓ P  (baja nivel de precios)", effects: { ad: "flat", Y: "up", P: "down" } },
+      ],
+    },
   };
 }
 
@@ -2213,17 +2503,22 @@ function computeMF(p) {
   const A = p.a - p.c * p.T + p.h - p.b * p.rStar + p.G + p.z + p.tb;
   const Ylm = (realM - p.n + p.l * p.rStar) / p.k;
   const YisAtPeg = (A + p.phi * (p.qPeg - 1)) / (1 - p.c);
+  let Y, q, MEndogenous;
   if (p.mode === "fixed") {
-    const Y = YisAtPeg;
-    const q = p.qPeg;
-    const MEndogenous = p.P * (p.n + p.k * Y - p.l * p.rStar);
-    const NX = p.z + p.tb + p.phi * (q - 1);
-    return { ...p, realM: MEndogenous / p.P, A, Y, q, r: p.rStar, MEndogenous, NX, Ylm };
+    Y = YisAtPeg;
+    q = p.qPeg;
+    MEndogenous = p.P * (p.n + p.k * Y - p.l * p.rStar);
+  } else {
+    Y = Ylm;
+    q = 1 + ((1 - p.c) * Y - A) / p.phi;
+    MEndogenous = p.M;
   }
-  const Y = Ylm;
-  const q = 1 + ((1 - p.c) * Y - A) / p.phi;
   const NX = p.z + p.tb + p.phi * (q - 1);
-  return { ...p, realM, A, Y, q, r: p.rStar, MEndogenous: p.M, NX, Ylm };
+  const C = p.a + p.c * (Y - p.T);
+  const S = Y - C - p.G;
+  const I = p.h - p.b * p.rStar;
+  const SmI = S - I;
+  return { ...p, realM: MEndogenous / p.P, A, Y, q, r: p.rStar, MEndogenous, NX, Ylm, C, S, I, SmI };
 }
 
 function renderMF(base, cur) {
@@ -2286,16 +2581,48 @@ function renderMF(base, cur) {
       markers: [{ x: cur.realM, y: cur.rStar, label: "Equilibrio", color: C_R, guides: true, pulse: true }],
       arrows: moveArrow({ x: base.realM, y: base.rStar }, { x: cur.realM, y: cur.rStar }, "ΔM/P", COLORS.blue),
     }),
+    (function () {
+      const nxVals = [base.NX, cur.NX, base.SmI, cur.SmI];
+      const xDom = domainFrom(nxVals.concat([0]), 0.25);
+      const nxBaseFn = (q) => base.z + base.tb + base.phi * (q - 1);
+      const nxCurFn = (q) => cur.z + cur.tb + cur.phi * (q - 1);
+      return lineChart({
+        title: "3. Mercado de divisas · S − I y XN",
+        subtitle: "El TCR ajusta hasta que las salidas netas de capital (S − I) se igualan con XN(q).",
+        xLabel: "S − I  /  XN  (flujo de divisas)",
+        yLabel: "TCR / tipo de cambio q",
+        xDomain: xDom,
+        yDomain: qDomain,
+        shifts: [{ basePoints: pointsFromY(nxBaseFn, qDomain), newPoints: pointsFromY(nxCurFn, qDomain), color: COLORS.green, opacity: 0.13 }],
+        curves: [
+          { label: "XN base", color: COLORS.base, dash: "7 6", points: pointsFromY(nxBaseFn, qDomain) },
+          { label: "XN nueva", color: COLORS.green, points: pointsFromY(nxCurFn, qDomain) },
+        ],
+        vLines: [
+          { x: base.SmI, label: "", color: COLORS.base, dash: "7 6" },
+          { x: cur.SmI, label: `S − I = ${fmt(cur.SmI, 2)}`, color: COLORS.blue },
+        ],
+        hLines: cur.mode === "fixed" ? [{ y: cur.qPeg, label: `peg = ${fmt(cur.qPeg, 2)}`, color: C_Q }] : [],
+        crossGuides: [{ orientation: "h", y: cur.q, color: C_Q, label: `q = ${fmt(cur.q, 2)}` }],
+        markers: [
+          { x: base.NX, y: base.q, label: "Base", color: COLORS.base, guides: true, dy: -16 },
+          { x: cur.NX, y: cur.q, label: cur.mode === "fixed" ? "XN ≠ S−I (ΔM)" : "XN = S − I", color: C_Q, guides: true, dy: 18, pulse: true },
+        ],
+        arrows: moveArrow({ x: base.NX, y: base.q }, { x: cur.NX, y: cur.q }, cur.mode === "fixed" ? "BC absorbe brecha" : "q cierra brecha", C_Q),
+      });
+    })(),
     barChart({
-      title: "3. Resultado externo y monetario",
+      title: "4. Resultado externo y monetario",
       subtitle: "El régimen cambiario reasigna potencia entre política fiscal, monetaria y comercial.",
       yLabel: "Nivel",
       bars: [
         { label: "Y", base: base.Y, value: cur.Y, color: C_Y },
         { label: "q", base: base.q, value: cur.q, color: C_Q, digits: 2 },
         { label: "XN", base: base.NX, value: cur.NX, color: COLORS.green },
-        { label: "M", base: base.MEndogenous, value: cur.MEndogenous, color: COLORS.blue },
+        { label: "S − I", base: base.SmI, value: cur.SmI, color: COLORS.blue },
+        { label: "M", base: base.MEndogenous, value: cur.MEndogenous, color: COLORS.coral },
       ],
+      wide: true,
     }),
   ].join("");
   const regimeText =
@@ -2348,51 +2675,94 @@ function renderMF(base, cur) {
     },
   ];
   return {
-    formulas: ["IS*: Y = C(Y-T) + I(r*) + G + XN(q)", "LM*: M/P = L(r*, Y)", "Flexible: q ajusta", "Fijo: M ajusta"],
+    formulas: ["IS*: Y = C(Y-T) + I(r*) + G + XN(q)", "LM*: M/P = L(r*, Y)", "Mercado de divisas: S − I = XN(q)", "Flexible: q ajusta · Fijo: M ajusta"],
     links: [
       {
-        from: "Mercado monetario",
-        variable: "Y LM*",
-        base: base.Ylm,
-        value: cur.Ylm,
-        color: C_Y,
-        to: "IS* y LM*",
-        note: cur.mode === "fixed" ? "En fijo, esta presión se acomoda con M para sostener la paridad." : "En flexible, LM* fija el producto y el tipo de cambio hace el resto.",
+        from: "2. Mercado monetario",
+        variable: cur.mode === "fixed" ? "M endógeno" : "Y de LM*",
+        base: cur.mode === "fixed" ? base.MEndogenous : base.Ylm,
+        value: cur.mode === "fixed" ? cur.MEndogenous : cur.Ylm,
+        color: COLORS.blue,
+        to: "1. IS* y LM*",
+        note: cur.mode === "fixed" ? "El BC ajusta M para sostener q = peg." : "LM* vertical fija el producto Y de corto plazo.",
       },
       {
-        from: "IS*",
-        variable: cur.mode === "fixed" ? "q fijo" : "q flexible",
+        from: "1. IS* y LM*",
+        variable: "q de equilibrio",
         base: base.q,
         value: cur.q,
         color: C_Q,
-        to: "XN(q)",
-        note: "El tipo de cambio conecta la demanda externa con el equilibrio de bienes.",
+        to: "3. S − I = XN",
+        note: "Ese mismo q se proyecta como TCR en el mercado de divisas.",
       },
       {
-        from: "Régimen cambiario",
-        variable: cur.mode === "fixed" ? "M endógeno" : "M exógeno",
-        base: base.MEndogenous,
-        value: cur.MEndogenous,
+        from: "Ahorro · Inversión",
+        variable: "S − I",
+        base: base.SmI,
+        value: cur.SmI,
         color: COLORS.blue,
-        to: "Resultado final",
-        note: "El mismo choque cambia de canal según flexible o fijo.",
+        to: "3. XN(q)",
+        note: "La línea vertical muestra cuánta divisa hay que colocar afuera; XN(q) la absorbe.",
       },
     ],
     charts,
     equations,
     steps: [
-      `La tasa doméstica se iguala a r* = ${fmt(cur.rStar, 2, "%")} por movilidad de capitales.`,
-      regimeText,
-      `El producto de corto plazo queda en ${fmt(cur.Y, 2)} y las exportaciones netas en ${fmt(cur.NX, 2)}.`,
+      `(1) Movilidad perfecta de capitales fija r doméstica = r* = ${fmt(cur.rStar, 2, "%")}.`,
+      `(2) ${cur.mode === "fixed" ? `Bajo TCR fijo, el peg q = ${fmt(cur.qPeg, 2)} ancla IS*; el producto se ubica en Y = ${fmt(cur.Y, 1)} y el banco central acomoda M = ${fmt(cur.MEndogenous, 2)} para sostener la paridad.` : `Bajo TCR flexible, LM* (vertical) determina Y = ${fmt(cur.Y, 1)}; el TCR salta hasta q = ${fmt(cur.q, 2)} para cerrar IS*.`}`,
+      `(3) El consumo se ubica en C = ${fmt(cur.C, 2)} y la inversión I(r*) en ${fmt(cur.I, 2)}, con lo que las salidas netas de capital S − I = ${fmt(cur.SmI, 2)}.`,
+      `(4) En el mercado de divisas, XN = ${fmt(cur.NX, 2)} ${cur.mode === "fixed" ? "queda determinado por q peg; cualquier diferencia con S − I la cubre el banco central comprando o vendiendo reservas." : "se iguala a S − I por el ajuste de q."}`,
+      `(5) ΔY = ${signed(cur.Y - base.Y, 2)}, Δq = ${signed(cur.q - base.q, 2)}, ΔXN = ${signed(cur.NX - base.NX, 2)} respecto al escenario base.`,
     ],
     rows: [
       row("Producto Y", base.Y, cur.Y, 2),
+      row("Tasa internacional r*", base.rStar, cur.rStar, 2, "%"),
+      row("Consumo C", base.C, cur.C, 2),
+      row("Inversión I(r*)", base.I, cur.I, 2),
+      row("Ahorro nacional S", base.S, cur.S, 2),
+      row("S − I (salidas netas de capital)", base.SmI, cur.SmI, 2),
       row("TCR / tipo de cambio q", base.q, cur.q, 2),
       row("Exportaciones netas XN", base.NX, cur.NX, 2),
       row("Saldos reales M/P", base.realM, cur.realM, 2),
       row("Dinero requerido M", base.MEndogenous, cur.MEndogenous, 2),
-      row("Tasa internacional r*", base.rStar, cur.rStar, 2, "%"),
     ],
+    shocks: cur.mode === "fixed"
+      ? {
+          title: "Estática comparativa · Mundell-Fleming con TCR FIJO",
+          subtitle: "Con paridad fija, el banco central pierde política monetaria autónoma (M se vuelve endógena para sostener q).",
+          columns: [
+            { key: "Y", label: "Y" },
+            { key: "q", label: "q" },
+            { key: "XN", label: "XN" },
+            { key: "M", label: "M (endóg.)" },
+          ],
+          rows: [
+            { shock: "↑ G  (fiscal expansiva)", effects: { Y: "up", q: "flat", XN: "down", M: "up" }, note: "el BC compra divisas para evitar la apreciación" },
+            { shock: "↓ T  (impuestos)", effects: { Y: "up", q: "flat", XN: "down", M: "up" } },
+            { shock: "↑ M  (intento de monetaria expansiva)", effects: { Y: "flat", q: "flat", XN: "flat", M: "flat" }, note: "el BC esteriliza para mantener el peg" },
+            { shock: "↑ TB  (proteccionismo)", effects: { Y: "up", q: "flat", XN: "up", M: "up" } },
+            { shock: "Devaluación (↑ peg)", effects: { Y: "up", q: "up", XN: "up", M: "up" } },
+            { shock: "↓ r*  (cae tasa internacional)", effects: { Y: "up", q: "flat", XN: "up", M: "up" } },
+          ],
+        }
+      : {
+          title: "Estática comparativa · Mundell-Fleming con TCR FLEXIBLE",
+          subtitle: "Con tasa internacional dada y movilidad perfecta, LM* (vertical) fija Y; q ajusta para cerrar IS*.",
+          columns: [
+            { key: "Y", label: "Y" },
+            { key: "q", label: "q" },
+            { key: "XN", label: "XN" },
+            { key: "M", label: "M" },
+          ],
+          rows: [
+            { shock: "↑ G  (fiscal expansiva)", effects: { Y: "flat", q: "down", XN: "down", M: "flat" }, note: "crowding-out total vía revaluación" },
+            { shock: "↓ T  (impuestos)", effects: { Y: "flat", q: "down", XN: "down", M: "flat" } },
+            { shock: "↑ M  (monetaria expansiva)", effects: { Y: "up", q: "up", XN: "up", M: "up" }, note: "depreciación expansiva" },
+            { shock: "↑ TB  (proteccionismo)", effects: { Y: "flat", q: "down", XN: "flat", M: "flat" }, note: "compensa con revaluación" },
+            { shock: "↓ r*  (cae tasa internacional)", effects: { Y: "up", q: "up", XN: "up", M: "flat" } },
+            { shock: "↑ z  (XN autónoma)", effects: { Y: "flat", q: "down", XN: "flat", M: "flat" } },
+          ],
+        },
   };
 }
 
@@ -2747,6 +3117,7 @@ function render() {
           <div class="charts-grid">${view.charts}</div>
           ${equationsPanel(view.equations || [])}
           ${explainPanel(model, params, view.steps)}
+          ${shocksTablePanel(view.shocks)}
           ${tablePanel(view.rows, "Base = valores iniciales del simulador; Nuevo = escenario definido por los sliders.")}
         </div>
       </section>
